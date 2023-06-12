@@ -930,6 +930,14 @@ namespace v2rayN.ViewModels
             return 0;
         }
 
+        public void SelectFirstServer()
+        {
+            if (_profileItems.Count > 0)
+            {
+                SelectedProfile = _profileItems[0];
+            }
+        }
+
         public void EditServer(bool blNew, EConfigType eConfigType)
         {
             ProfileItem item;
@@ -1148,6 +1156,23 @@ namespace v2rayN.ViewModels
             RefreshServers();
         }
 
+        public void DescendSortServer(string colName)
+        {
+            if (Utils.IsNullOrEmpty(colName))
+            {
+                return;
+            }
+
+            _dicHeaderSort.TryAdd(colName, true);
+            _dicHeaderSort.TryGetValue(colName, out bool asc);
+            if (ConfigHandler.SortServers(ref _config, _subId, colName, false) != 0)
+            {
+                return;
+            }
+            _dicHeaderSort[colName] = false;
+            RefreshServers();
+        }
+
         public void TestServerAvailability()
         {
             var item = ConfigHandler.GetDefaultServer(ref _config);
@@ -1336,7 +1361,10 @@ namespace v2rayN.ViewModels
         {
             await (new UpdateHandle()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
             List<ProfileItem> lstModel = LazyConfig.Instance.ProfileItems(_subId);
-            new SpeedtestHandler(_config, _coreHandler, lstModel, ESpeedActionType.Mixedtest, UpdateSpeedtestHandler);
+            await (new SpeedtestHandler(_config)).TestLatencySpeed(_coreHandler, lstModel, ESpeedActionType.Mixedtest, UpdateSpeedtestHandler);
+            DescendSortServer(EServerColName.speedVal.ToString());
+            SelectFirstServer();
+            SetDefaultServer();
         }
 
         #endregion Subscription

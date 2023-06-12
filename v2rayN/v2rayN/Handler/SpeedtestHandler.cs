@@ -95,6 +95,78 @@ namespace v2rayN.Handler
             }
         }
 
+        public async Task TestLatencySpeed(CoreHandler coreHandler, List<ProfileItem> selecteds, ESpeedActionType actionType, Action<string, string, string> update)
+        {
+            _coreHandler = coreHandler;
+            _updateFunc = update;
+            _selecteds = new List<ServerTestItem>();
+            foreach (var it in selecteds)
+            {
+                if (it.configType == EConfigType.Custom)
+                {
+                    continue;
+                }
+                if (it.port <= 0)
+                {
+                    continue;
+                }
+                _selecteds.Add(new ServerTestItem()
+                {
+                    indexId = it.indexId,
+                    address = it.address,
+                    port = it.port,
+                    configType = it.configType
+                });
+            }
+            //clear test result
+            foreach (var it in _selecteds)
+            {
+                switch (actionType)
+                {
+                    case ESpeedActionType.Ping:
+                    case ESpeedActionType.Tcping:
+                    case ESpeedActionType.Realping:
+                        UpdateFunc(it.indexId, ResUI.Speedtesting, "");
+                        ProfileExHandler.Instance.SetTestDelay(it.indexId, "0");
+                        break;
+
+                    case ESpeedActionType.Speedtest:
+                        UpdateFunc(it.indexId, "", ResUI.SpeedtestingWait);
+                        ProfileExHandler.Instance.SetTestSpeed(it.indexId, "0");
+                        break;
+
+                    case ESpeedActionType.Mixedtest:
+                        UpdateFunc(it.indexId, ResUI.Speedtesting, ResUI.SpeedtestingWait);
+                        ProfileExHandler.Instance.SetTestDelay(it.indexId, "0");
+                        ProfileExHandler.Instance.SetTestSpeed(it.indexId, "0");
+                        break;
+                }
+            }
+
+            switch (actionType)
+            {
+                case ESpeedActionType.Ping:
+                    await Task.Run(RunPing);
+                    break;
+
+                case ESpeedActionType.Tcping:
+                    await Task.Run(RunTcping);
+                    break;
+
+                case ESpeedActionType.Realping:
+                    await Task.Run(RunRealPing);
+                    break;
+
+                case ESpeedActionType.Speedtest:
+                    await Task.Run(RunSpeedTestAsync);
+                    break;
+
+                case ESpeedActionType.Mixedtest:
+                    await Task.Run(RunMixedtestAsync);
+                    break;
+            }
+        }
+
         private void RunPingSub(Action<ServerTestItem> updateFun)
         {
             try
