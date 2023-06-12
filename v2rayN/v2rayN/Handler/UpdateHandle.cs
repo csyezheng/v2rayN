@@ -147,7 +147,7 @@ namespace v2rayN.Handler
             CheckUpdateAsync(type, preRelease);
         }
 
-        public void UpdateSubscriptionProcess(Config config, string subId, bool blProxy, Action<bool, string> update)
+        public async Task UpdateSubscriptionProcess(Config config, string subId, bool blProxy, Action<bool, string> update)
         {
             _config = config;
             _updateFunc = update;
@@ -161,7 +161,7 @@ namespace v2rayN.Handler
                 return;
             }
 
-            Task.Run(async () =>
+            await Task.Run(async () =>
             {
                 foreach (var item in subItem)
                 {

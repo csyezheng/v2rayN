@@ -1332,9 +1332,11 @@ namespace v2rayN.ViewModels
             }
         }
 
-        private void UpdateSubscriptionProcess(string subId, bool blProxy)
+        private async Task UpdateSubscriptionProcess(string subId, bool blProxy)
         {
-            (new UpdateHandle()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
+            await (new UpdateHandle()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
+            List<ProfileItem> lstModel = LazyConfig.Instance.ProfileItems(_subId);
+            new SpeedtestHandler(_config, _coreHandler, lstModel, ESpeedActionType.Mixedtest, UpdateSpeedtestHandler);
         }
 
         #endregion Subscription
