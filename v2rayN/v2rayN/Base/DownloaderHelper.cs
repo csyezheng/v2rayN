@@ -45,7 +45,8 @@ namespace v2rayN.Base
             {
                 if (value.Error != null)
                 {
-                    throw value.Error;
+                    // throw value.Error;
+                    Utils.SaveLog("fill fonts error", value.Error);
                 }
             };
             using var stream = await downloader.DownloadFileTaskAsync(address: url, cancellationToken: cancellationToken.Token);
