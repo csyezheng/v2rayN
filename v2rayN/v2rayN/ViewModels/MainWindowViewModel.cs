@@ -564,7 +564,7 @@ namespace v2rayN.ViewModels
                 _statistics = new StatisticsHandler(_config, UpdateStatisticsHandler);
             }
 
-            MainFormHandler.Instance.UpdateTask(_config, UpdateTaskHandler);
+            MainFormHandler.Instance.UpdateTask(_config, UpdateTaskHandler, AutoUpdateHandler, UpdateSpeedtestHandler, SortAndSelectHandler);
             MainFormHandler.Instance.RegisterGlobalHotkey(_config, OnHotkeyHandler, UpdateTaskHandler);
 
             Reload();
@@ -584,6 +584,11 @@ namespace v2rayN.ViewModels
         #region Actions
 
         private void UpdateHandler(bool notify, string msg)
+        {
+            _noticeHandler?.SendMessage(msg);
+        }
+
+        public void AutoUpdateHandler(bool notify, string msg)
         {
             _noticeHandler?.SendMessage(msg);
         }
@@ -711,6 +716,13 @@ namespace v2rayN.ViewModels
                     SetListenerType(ESysProxyType.Pac);
                     break;
             }
+        }
+
+        private void SortAndSelectHandler()
+        {
+            DescendSortServer(EServerColName.speedVal.ToString());
+            SelectFirstServer();
+            SetDefaultServer();
         }
 
         public void MyAppExit(bool blWindowsShutDown)
@@ -934,7 +946,10 @@ namespace v2rayN.ViewModels
         {
             if (_profileItems.Count > 0)
             {
-                SelectedProfile = _profileItems[0];
+                Application.Current.Dispatcher.Invoke(new Action(delegate
+                {
+                    SelectedProfile = _profileItems[0];
+                }));
             }
         }
 
@@ -1360,11 +1375,9 @@ namespace v2rayN.ViewModels
         private async Task UpdateSubscriptionProcess(string subId, bool blProxy)
         {
             await (new UpdateHandle()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
-            List<ProfileItem> lstModel = LazyConfig.Instance.ProfileItems(_subId);
+            List<ProfileItem> lstModel = LazyConfig.Instance.ProfileItems(subId);
             await (new SpeedtestHandler(_config)).TestLatencySpeed(_coreHandler, lstModel, ESpeedActionType.Mixedtest, UpdateSpeedtestHandler);
-            DescendSortServer(EServerColName.speedVal.ToString());
-            SelectFirstServer();
-            SetDefaultServer();
+            SortAndSelectHandler();
         }
 
         #endregion Subscription

@@ -275,18 +275,21 @@ namespace v2rayN.Handler
             return true;
         }
 
-        public void UpdateTask(Config config, Action<bool, string> update)
+        public void UpdateTask(Config config, Action<bool, string> update,
+            Action<bool, string> autoUpdateHandler, Action<string, string, string> updateSpeedtestHandler, Action sortAndSelectHandler)
         {
-            Task.Run(() => UpdateTaskRunSubscription(config, update));
+            Task.Run(() => UpdateTaskRunSubscription(config, update, autoUpdateHandler, updateSpeedtestHandler, sortAndSelectHandler));
             Task.Run(() => UpdateTaskRunGeo(config, update));
         }
 
-        private void UpdateTaskRunSubscription(Config config, Action<bool, string> update)
+        private async void UpdateTaskRunSubscription(Config config, Action<bool, string> update,
+            Action<bool, string> autoUpdateHandler, Action<string, string, string> updateSpeedtestHandler, Action sortAndSelectHandler)
         {
             Thread.Sleep(60000);
             Utils.SaveLog("UpdateTaskRunSubscription");
 
             var updateHandle = new UpdateHandle();
+            var _coreHandler = new CoreHandler(autoUpdateHandler);
             while (true)
             {
                 var updateTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
@@ -295,9 +298,9 @@ namespace v2rayN.Handler
                             .Where(t => updateTime - t.updateTime >= t.autoUpdateInterval * 60)
                             .ToList();
 
-                foreach (var item in lstSubs)
+                var tasks = lstSubs.Select(async item =>
                 {
-                    updateHandle.UpdateSubscriptionProcess(config, item.id, true, (bool success, string msg) =>
+                    await updateHandle.UpdateSubscriptionProcess(config, item.id, true, (bool success, string msg) =>
                     {
                         update(success, msg);
                         if (success)
@@ -305,9 +308,13 @@ namespace v2rayN.Handler
                     });
                     item.updateTime = updateTime;
                     ConfigHandler.AddSubItem(ref config, item);
-
+                    List<ProfileItem> lstModel = LazyConfig.Instance.ProfileItems(item.id);
+                    await (new SpeedtestHandler(config)).TestLatencySpeed(_coreHandler, lstModel, ESpeedActionType.Mixedtest, updateSpeedtestHandler);
                     Thread.Sleep(5000);
-                }
+                });
+                await Task.WhenAll(tasks);
+
+                sortAndSelectHandler();
                 Thread.Sleep(60000);
             }
         }
